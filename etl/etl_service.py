@@ -2,11 +2,13 @@ from typing import List
 import psycopg
 
 from models import Movie
+from postgresql_service import PostgresService
+
 
 class ETLService:
     def __init__(
             self,
-            psql_service=None,
+            psql_service: PostgresService = None,
             batch_size: int = 100,
     ) -> None:
         self.psql_service = psql_service

@@ -1,57 +1,45 @@
 import time
-import os
 from datetime import datetime
-import redis
-import elasticsearch
 
-from postgresql_service import PostgresService
+from conn_data import es_data, psql_data
+from es_service import ESService
 from etl_service import ETLService
+from models import Movie
+from my_types import ServiceType
+from postgresql_service import PostgresService
+from state_redis import state
 
-dsl = {
-    "dbname": os.environ.get("POSTGRES_DB", 'theatre'),
-    "user": os.environ.get("POSTGRES_USER", 'postgres'),
-    "password": os.environ.get("POSTGRES_PASSWORD", 'secret'),
-    "host": os.environ.get("SQL_HOST"),
-    "port": os.environ.get("SQL_PORT"),
-}
-
-tables = ['film_work', 'person', 'genre']
+tables = ["film_work", "person", "genre"]
 periodicity = 60
-timestamp = str(datetime.min)
 
-
-def test_redis():
-    redis_client = redis.StrictRedis(
-        unix_socket_path=os.environ.get("REDIS_UNIX_SOCKET_PATH"),
-        db=1
-    )
-    redis_client.set('last_sync', str(datetime.now()))
-
-    last_sync = redis_client.get('last_sync')
-    if last_sync:
-        print(f"Last Sync Time: {last_sync.decode('utf-8')}")
+timestamp = datetime.min
 
 
 def main():
-    print('START')
+    etl_service = ETLService(state=state)
     while True:
+        timestamp = state.get_state(key="timestamp")
+        if timestamp is None:
+            timestamp = datetime.min
         final_list: list = []
         for table in tables:
             with PostgresService(
-                connect_data=dsl,
-                schema_name='content',
+                connect_data=psql_data,
+                schema_name="content",
                 batch_size=100,
-                timestamp=timestamp
+                timestamp=str(timestamp),
             ) as psql_service:
-                etl_service = ETLService(psql_service)
-                # etl_service.process()
+                etl_service.config(ServiceType.POSTGRESQL, psql_service)
                 result = etl_service.extract(table)
-                [final_list.append(movie) for movie in result if movie not in final_list]
-        validated_result = etl_service.transform(final_list)  # так стоп.... а как?
-        print(len(validated_result))
+                for movie in result:
+                    if movie not in final_list:
+                        final_list.append(movie)
+        transform_list, last_m = etl_service.transform(final_list, Movie)
+        with ESService(connect_data=es_data, index="movies") as es_service:
+            etl_service.config(ServiceType.ELASTICSEARCH, es_service)
+            etl_service.load_to_es(transform_list, last_m)
         time.sleep(periodicity)
 
 
 if __name__ == "__main__":
     main()
-    # test_redis()

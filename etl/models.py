@@ -1,7 +1,7 @@
 from typing import List, Optional
-from pydantic import BaseModel
-
 from uuid import UUID
+
+from pydantic import BaseModel, field_validator
 
 
 class Person(BaseModel):
@@ -12,12 +12,16 @@ class Person(BaseModel):
 class Movie(BaseModel):
     id: UUID
     imdb_rating: Optional[float]
-    genres: str
+    genres: List[str]
     title: str
     description: Optional[str]
-    directors_names: Optional[str]
-    actors_names: Optional[str]
-    writers_names: Optional[str]
+    directors_names: Optional[List[str]]
+    actors_names: Optional[List[str]]
+    writers_names: Optional[List[str]]
     directors: Optional[List[Person]]
     actors: Optional[List[Person]]
     writers: Optional[List[Person]]
+
+    @field_validator("directors_names", mode="before")
+    def set_directors_names(cls, v):
+        return v if v is not None else []

@@ -1,25 +1,20 @@
 FROM elasticsearch:8.6.2
 
-ARG GID=1000
-ARG UID=1000
-ARG USER=ubuntu
+COPY ./docker/dev/es/movies.json /usr/share/elasticsearch/movies.json
+COPY ./docker/dev/es/load_index.sh /usr/share/elasticsearch/load_index.sh
 
-RUN apk add --update --no-cache python3-dev postgresql-dev curl && \
-    addgroup -g $GID -S $USER && \
-    adduser -S $USER -G $USER --uid "$UID" && \
-    mkdir -p /redis_socket && \
-    chmod -R 777 /redis_socket && \
-    chown -R $USER:$USER /redis_socket
+USER root
 
-WORKDIR $APP_HOME
+RUN chmod +x /usr/share/elasticsearch/load_index.sh
 
-COPY --chown=$USER:$USER ./etl $APP_HOME
-COPY --chown=$USER:$USER ./requirements.txt $APP_HOME/requirements.txt
+USER elasticsearch
 
-RUN pip install -r requirements.txt
-
-EXPOSE 8000
-
-USER $USER
-
-CMD ["python", "main.py"]
+CMD ["/bin/bash", "-c", "\
+    elasticsearch & \
+    elasticsearch_pid=$! && \
+    until curl -s localhost:9200; do \
+      echo 'Waiting for Elasticsearch...'; \
+      sleep 2; \
+    done && \
+    /usr/share/elasticsearch/load_index.sh && \
+    wait $elasticsearch_pid"]

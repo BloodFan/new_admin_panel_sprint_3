@@ -12,33 +12,24 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - docker/dev/env/.db.env
-      - docker/dev/env/.redis.env
+      - docker/dev/env/.conn.env
     depends_on: [db, elasticsearch, redis]
     restart: unless-stopped
     networks:
       - theatre_network
 
   elasticsearch:
-    image: elasticsearch:8.6.2
-    # depends_on: [db, ]
-    # command: ["/es/index.sh", ]
+    build:
+      context: .
+      dockerfile: docker/dev/es/Dockerfile
     ports:
       - "9200:9200"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms200m -Xmx200m
-    # volumes:
-    #     - ./docker/dev/es:/es
     networks:
       - theatre_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
 
   redis:
     image: redis:7.4.0-alpine
@@ -63,7 +54,7 @@ services:
       - etl_postgres_data:/var/lib/postgresql/data/
       - etl_postgres_socket:/var/run/postgresql/
     env_file:
-      - docker/dev/env/.db.env
+      - docker/dev/env/.conn.env
     networks:
       - theatre_network
 

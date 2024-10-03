@@ -1,19 +1,29 @@
 from typing import Optional
-import psycopg
-from psycopg.rows import dict_row
-from psycopg import connection as _connection, ClientCursor
 
+import psycopg
+from my_backoff import backoff
+from psycopg import (
+    ClientCursor,
+    IntegrityError,
+    InterfaceError,
+    OperationalError,
+    ProgrammingError,
+)
+from psycopg import connection as _connection
+from psycopg.rows import dict_row
 from queries import Queries
-from sql_factory import (FilmWorkQueryHandler,
-                         PersonFilmWorkQueryHandler,
-                         GenreFilmWorkQueryHandler)
+from sql_factory import (
+    FilmWorkQueryHandler,
+    GenreFilmWorkQueryHandler,
+    PersonFilmWorkQueryHandler,
+)
 
 
 def query_handlers(table_name: str):
     data = {
-        'film_work': FilmWorkQueryHandler,
-        'person': PersonFilmWorkQueryHandler,
-        'genre': GenreFilmWorkQueryHandler
+        "film_work": FilmWorkQueryHandler,
+        "person": PersonFilmWorkQueryHandler,
+        "genre": GenreFilmWorkQueryHandler,
     }
     return data[table_name]
 
@@ -26,7 +36,7 @@ class PostgresService:
         schema_name: Optional[str] = None,
         batch_size: int = 100,
         timestamp: str = None,
-        queries: Queries = Queries()
+        queries: Queries = Queries(),
     ) -> None:
         self.connect_data = connect_data
         self.schema_name = schema_name
@@ -40,30 +50,26 @@ class PostgresService:
         self,
     ) -> psycopg.Cursor:
         if not self.connection:
-            raise RuntimeError(
-                "Соединение с базой данных(PostgreSQL) не установлено!"
-            )
+            raise RuntimeError("Соединение с базой данных(PostgreSQL) не установлено!")
         return self.connection.cursor()
 
     def close_cursor(self, p_cursor: psycopg.Cursor) -> None:
         return p_cursor.close()
 
+    @backoff(
+        errors=(OperationalError, InterfaceError),
+        client_errors=(ProgrammingError, IntegrityError),
+    )
     def get_psql_connection(self) -> _connection:
         """Создание соединения psql"""
         return psycopg.connect(
-            **self.connect_data,
-            row_factory=dict_row,
-            cursor_factory=ClientCursor
+            **self.connect_data, row_factory=dict_row, cursor_factory=ClientCursor
         )
 
     def handler(self, table: str):
         handler = query_handlers(table)
         handle = handler(
-            self.cursor,
-            self.queries,
-            self.timestamp,
-            self.schema_name,
-            self.batch_size
+            self.cursor, self.queries, self.timestamp, self.schema_name, self.batch_size
         )
         return handle.get_result_query()
 

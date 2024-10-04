@@ -1,10 +1,8 @@
 import abc
-from json import JSONDecodeError
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import redis
 import redis.exceptions as redis_e
-from conn_data import redis_data
 from my_backoff import backoff
 
 
@@ -73,14 +71,9 @@ class State:
         """Установить состояние для определённого ключа."""
         self.storage.save_state(key=key, value=value)
 
-    def get_state(self, key: str) -> Any:
+    def get_state(
+            self, key: str, default: Optional[str] = None
+    ) -> Optional[str]:
         """Получить состояние по определённому ключу."""
-        try:
-            result = self.storage.retrieve_state(key=key)
-            return None if result == "None" else result
-        except JSONDecodeError as e:
-            raise JSONDecodeError(f"{e}")
-
-
-storage = RedisStorage(redis_data)
-state = State(storage=storage)
+        result = self.storage.retrieve_state(key=key)
+        return result if result else default

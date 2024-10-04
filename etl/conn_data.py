@@ -12,3 +12,11 @@ es_data = {
     "es_port": os.environ.get("ES_PORT"),
 }
 redis_data = {"unix_socket_path": os.environ.get("REDIS_UNIX_SOCKET_PATH")}
+
+
+env_data = {
+    "tables": os.environ.get("TABLES"),
+    "periodicity": os.environ.get("PERIODICITY"),
+    "schema_name": os.environ.get("SCHEMA_NAME"),
+    "index": os.environ.get("INDEX"),
+}

@@ -13,6 +13,7 @@ services:
       - "8000:8000"
     env_file:
       - docker/dev/env/.conn.env
+      - docker/dev/env/.env
     depends_on: [db, elasticsearch, redis]
     restart: unless-stopped
     networks:

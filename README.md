@@ -22,3 +22,5 @@ sql_factory.py - фабричные классы для postgresql_service
 queries.py - SQL-запросы в БД
 
 conn_data.py - конфигурации для доступа(Redis, ElasticSearch, PostrgeSql)
+
+loggers.py - настройки логгера

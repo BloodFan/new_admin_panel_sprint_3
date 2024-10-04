@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 
 class Queries:
@@ -6,8 +6,6 @@ class Queries:
     @staticmethod
     def get_list_ids(
         schema_name: str,
-        current_timestamp: str,
-        batch_size: int,
         table_name: str,
     ) -> str:
         """
@@ -20,15 +18,14 @@ class Queries:
         return f"""
             SELECT id, modified
             FROM {schema_name}.{table_name}
-            WHERE modified > '{current_timestamp}'
+            WHERE modified > %s
             ORDER BY modified
-            LIMIT {batch_size};
+            LIMIT %s;
         """
 
     @staticmethod
     def get_film_work_ids(
         schema_name: str,
-        id_list_str: str,
         table_name: str,
     ) -> str:
         """
@@ -39,27 +36,30 @@ class Queries:
         используем смежную таблицу person_film_work(pfw) | genre_film_work(gfw)
         """
         if table_name == "person_film_work":
-            join_and_filter = f"""
-            LEFT JOIN {schema_name}.{table_name} pfw
-            ON fw.id = pfw.film_work_id
-            WHERE pfw.person_id IN ({id_list_str})
-        """
-        if table_name == "genre_film_work":
-            join_and_filter = f"""
-            LEFT JOIN {schema_name}.{table_name} gfw
-            ON fw.id = gfw.film_work_id
-            WHERE gfw.genre_id IN ({id_list_str})
-        """
+            join = (
+                f"LEFT JOIN {schema_name}.{table_name} "
+                "pfw ON fw.id = pfw.film_work_id"
+            )
+            where = "WHERE pfw.person_id IN %s"
+
+        elif table_name == "genre_film_work":
+            join = (
+                f"LEFT JOIN {schema_name}.{table_name} "
+                "gfw ON fw.id = gfw.film_work_id"
+            )
+            where = "WHERE gfw.genre_id IN %s"
+
         return f"""
             SELECT fw.id, fw.modified
             FROM {schema_name}.film_work fw
-            {join_and_filter}
+            {join}
+            {where}
             ORDER BY fw.modified;
         """
 
     @staticmethod
     def result_query(
-        id_fw_str: Optional[str] = None, timestamp: Optional[str] = None
+        id_fw_list: Optional[List[str]] = None, timestamp: Optional[str] = None
     ) -> str:
         """
         Результирующий запрос.
@@ -69,10 +69,11 @@ class Queries:
         Фильтрация  для person and genre по fw.id
         передаваемому списку id_fw_str(строка через ,).
         """
-        if id_fw_str:
-            filter = f"WHERE fw.id IN ({id_fw_str})"
-        if timestamp:
-            filter = f"WHERE fw.modified > '{timestamp}'"
+        if id_fw_list is not None:
+            _filter = "WHERE fw.id = ANY(%s)"
+        elif timestamp is not None:
+            _filter = f"WHERE fw.modified > '{timestamp}'"
+
         return f"""SELECT
                     fw.id AS id,
                     fw.rating AS imdb_rating,
@@ -111,5 +112,5 @@ class Queries:
                     ON gfw.film_work_id = fw.id
                 LEFT JOIN content.genre g
                     ON g.id = gfw.genre_id
-                {filter}
+                {_filter}
                 GROUP BY fw.id;"""

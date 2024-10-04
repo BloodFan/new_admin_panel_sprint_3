@@ -25,3 +25,14 @@ class Movie(BaseModel):
     @field_validator("directors_names", mode="before")
     def set_directors_names(cls, v):
         return v if v is not None else []
+
+
+class ENVData(BaseModel):
+    tables: List[str]
+    periodicity: int
+    schema_name: str
+    index: str
+
+    @field_validator("tables", mode="before")
+    def set_tables(cls, v):
+        return [table.strip() for table in v.split(",") if table.strip()]

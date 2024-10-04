@@ -1,8 +1,11 @@
 import time
 from functools import wraps
 from typing import Any, Callable, Iterable, TypeVar
+from loggers import setup_logger
 
 RT = TypeVar("RT")
+
+logger = setup_logger("load_data.log")
 
 
 def backoff(
@@ -50,8 +53,12 @@ def backoff(
                     n += 1
                     restart_count += 1
                     if restart_count > max_restart:
-                        raise RuntimeError(f"Превышено  мах число попыток - {e}")
+                        logger.error("Превышено кол-во попыток подключения.")
+                        raise RuntimeError(
+                            f"Превышено  мах число попыток - {e}"
+                        )
                 except client_errors as e:
+                    logger.error(f"Проблема на стороне клиента - {e}")
                     raise RuntimeError(f"Проблема на стороне клиента - {e}")
 
         return wrapper

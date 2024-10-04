@@ -13,23 +13,25 @@ class ETLService:
         psql_service: PostgresService = None,
         es_service: ESService = None,
         batch_size: int = 100,
-        state: State = None,
+        state_service: State = None,
     ) -> None:
         self.psql_service = psql_service
         self.es_service = es_service
         self.batch_size = batch_size
-        self.state = state
+        self.state_service = state_service
 
     def config(
         self,
         type_process: ServiceType,
-        launc_process: Union[PostgresService, ESService],
+        launc_process: Union[PostgresService, ESService, State],
     ) -> None:
         """запускает внутренние компоненты."""
         if type_process == ServiceType.POSTGRESQL:
             self.psql_service = launc_process
         if type_process == ServiceType.ELASTICSEARCH:
             self.es_service = launc_process
+        if type_process == ServiceType.STATE:
+            self.state_service = launc_process
 
     def extract(self, table: str):
         """Извлекает данные из PosgreSQL"""
@@ -46,7 +48,7 @@ class ETLService:
         Преобразование формата данных
         PosgreSQL -> Elasticsearch
         """
-        last_m = self.state.get_state(key="timestamp")
+        last_m = self.state_service.get_state(key="timestamp")
         transform_list = []
 
         for obj in _list:
@@ -63,4 +65,4 @@ class ETLService:
     def load_to_es(self, upload_data: List[BaseModel], last_m):
         """загрузка полученных данных в Elasticsearch"""
         self.es_service.load(upload_data)
-        self.state.set_state(key="timestamp", value=str(last_m))
+        self.state_service.set_state(key="timestamp", value=str(last_m))

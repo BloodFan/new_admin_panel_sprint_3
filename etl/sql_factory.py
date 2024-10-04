@@ -31,10 +31,11 @@ class BaseQueryHandler(ABC):
         fw_ids: Set[uuid.UUID] = None,
     ) -> Generator[dict, Any, Any]:
         if fw_ids:
-            id_fw_str = ", ".join(f"'{str(uuid)}'" for uuid in fw_ids)
-            query = self.queries.result_query(id_fw_str=id_fw_str)
+            query = self.queries.result_query(id_fw_list=list(fw_ids))
+            self.cursor.execute(query, (list(fw_ids),))
         else:
             query = self.queries.result_query(timestamp=self.timestamp)
+            self.cursor.execute(query)
         self.cursor.itersize = 100
         self.cursor.execute(query)
         for row in self.cursor:
@@ -60,12 +61,12 @@ class ExtendedQueryHandler(BaseQueryHandler):
             while True:
                 query = self.queries.get_list_ids(
                     schema_name=self.schema_name,
-                    current_timestamp=current_timestamp,
-                    batch_size=self.batch_size,
                     table_name=self.table_name,
                 )
 
-                self.cursor.execute(query)
+                self.cursor.execute(
+                    query, (current_timestamp, self.batch_size)
+                )
                 results = self.cursor.fetchall()
 
                 if not results:
@@ -96,15 +97,14 @@ class ExtendedQueryHandler(BaseQueryHandler):
         fw_ids = set()
         try:
             for batch in batch_list(list_ids, self.batch_size):
-                id_list_str = ", ".join(f"'{str(uuid)}'" for uuid in batch)
+                batch_ids = (str(uuid) for uuid in batch)
 
                 query = self.queries.get_film_work_ids(
                     schema_name=self.schema_name,
-                    id_list_str=id_list_str,
                     table_name=table_name,
                 )
 
-                self.cursor.execute(query)
+                self.cursor.execute(query, (batch_ids,))
                 results = self.cursor.fetchall()
 
                 ids = {item["id"] for item in results}
@@ -128,7 +128,9 @@ class PersonFilmWorkQueryHandler(ExtendedQueryHandler):
 
     def get_result_query(self):
         person_ids = self.get_list_ids()
-        fw_ids = self.get_film_work_ids(person_ids, table_name=self.m2m_table_name)
+        fw_ids = self.get_film_work_ids(
+            person_ids, table_name=self.m2m_table_name
+        )
         return self.result_query(fw_ids)
 
 
@@ -138,5 +140,7 @@ class GenreFilmWorkQueryHandler(ExtendedQueryHandler):
 
     def get_result_query(self):
         genre_ids = self.get_list_ids()
-        fw_ids = self.get_film_work_ids(genre_ids, table_name=self.m2m_table_name)
+        fw_ids = self.get_film_work_ids(
+            genre_ids, table_name=self.m2m_table_name
+        )
         return self.result_query(fw_ids)

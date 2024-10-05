@@ -1,4 +1,3 @@
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
@@ -11,16 +10,16 @@ class Person(BaseModel):
 
 class Movie(BaseModel):
     id: UUID
-    imdb_rating: Optional[float]
-    genres: List[str]
+    imdb_rating: float | None
+    genres: list[str]
     title: str
-    description: Optional[str]
-    directors_names: Optional[List[str]]
-    actors_names: Optional[List[str]]
-    writers_names: Optional[List[str]]
-    directors: Optional[List[Person]]
-    actors: Optional[List[Person]]
-    writers: Optional[List[Person]]
+    description: str | None
+    directors_names: list[str] | None
+    actors_names: list[str] | None
+    writers_names: list[str] | None
+    directors: list[Person] | None
+    actors: list[Person] | None
+    writers: list[Person] | None
 
     @field_validator("directors_names", mode="before")
     def set_directors_names(cls, v):
@@ -28,10 +27,11 @@ class Movie(BaseModel):
 
 
 class ENVData(BaseModel):
-    tables: List[str]
+    tables: list[str]
     periodicity: int
     schema_name: str
     index: str
+    batch_size: int
 
     @field_validator("tables", mode="before")
     def set_tables(cls, v):

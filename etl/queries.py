@@ -1,6 +1,3 @@
-from typing import Optional, List
-
-
 class Queries:
 
     @staticmethod
@@ -59,7 +56,7 @@ class Queries:
 
     @staticmethod
     def result_query(
-        id_fw_list: Optional[List[str]] = None, timestamp: Optional[str] = None
+        id_fw_list: list[str] | None = None, timestamp: str | None = None
     ) -> str:
         """
         Результирующий запрос.

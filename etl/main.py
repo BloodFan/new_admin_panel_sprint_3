@@ -1,15 +1,13 @@
 import time
 
-from conn_data import es_data, psql_data, redis_data, env_data
+from conn_data import env_data, es_data, psql_data, redis_data
 from es_service import ESService
 from etl_service import ETLService
-from models import Movie, ENVData
+from loggers import setup_logger
+from models import Movie
 from my_types import ServiceType
 from postgresql_service import PostgresService
 from state_redis import RedisStorage, State
-from loggers import setup_logger
-
-env_data = ENVData(**env_data)
 
 logger = setup_logger("load_data.log")
 
@@ -22,13 +20,11 @@ def main():
     psql_service = PostgresService(
         connect_data=psql_data,
         schema_name=env_data.schema_name,
-        batch_size=100,
-        state_service=state_service
+        batch_size=env_data.batch_size,
+        state_service=state_service,
     )
     es_service = ESService(
-        connect_data=es_data,
-        index=env_data.index,
-        state_service=state_service
+        connect_data=es_data, index=env_data.index, state_service=state_service
     )
 
     etl_service = ETLService()
@@ -42,9 +38,9 @@ def main():
         for table in env_data.tables:
             with etl_service.psql_service:
                 result = etl_service.extract(table)
-                for movie in result:
-                    if movie not in final_list:
-                        final_list.append(movie)
+                for obj in result:
+                    if obj not in final_list:
+                        final_list.append(obj)
         logger.info("Данные извлечены.")
         transform_list, last_m = etl_service.transform(final_list, Movie)
         logger.info("Данные преобразованы.")

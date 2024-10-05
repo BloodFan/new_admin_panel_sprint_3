@@ -1,10 +1,13 @@
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Generator, List, Set
+from typing import Any, Generator, Set
 
 import psycopg
+from loggers import setup_logger
 from queries import Queries
 from utils import batch_list
+
+logger = setup_logger("load_data.log")
 
 
 class BaseQueryHandler(ABC):
@@ -43,7 +46,7 @@ class BaseQueryHandler(ABC):
 
 
 class ExtendedQueryHandler(BaseQueryHandler):
-    def get_list_ids(self) -> List[uuid.UUID]:
+    def get_list_ids(self) -> list[uuid.UUID]:
         """
         Запрос  Person или Genre. list_ids
 
@@ -78,11 +81,11 @@ class ExtendedQueryHandler(BaseQueryHandler):
                 current_timestamp = results[-1]["modified"]
             return person_ids
         except psycopg.Error as e:
-            print(f"Ошибка при извлечении данных: {e}")
+            logger.error(f"Ошибка при извлечении данных: {e}")
 
     def get_film_work_ids(
         self,
-        list_ids: List[uuid.UUID],
+        list_ids: list[uuid.UUID],
         table_name: str,
     ) -> Set[uuid.UUID]:
         """
@@ -112,7 +115,7 @@ class ExtendedQueryHandler(BaseQueryHandler):
             return fw_ids
 
         except (Exception, psycopg.Error) as e:
-            print(f"Ошибка при извлечении данных: {e}")
+            logger.error(f"Ошибка при извлечении данных: {e}")
 
 
 class FilmWorkQueryHandler(BaseQueryHandler):

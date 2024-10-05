@@ -1,8 +1,9 @@
 import abc
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import redis
 import redis.exceptions as redis_e
+from conn_data import RedisData
 from my_backoff import backoff
 
 
@@ -25,7 +26,7 @@ class BaseStorage(abc.ABC):
 
 
 class RedisStorage(BaseStorage):
-    def __init__(self, redis_data: dict) -> None:
+    def __init__(self, redis_data: RedisData) -> None:
         self.redis_data = redis_data
         self.connection: redis.StrictRedis = self.get_redis_connection()
 
@@ -45,7 +46,7 @@ class RedisStorage(BaseStorage):
     def get_redis_connection(self) -> redis.StrictRedis:
         """Создание соединения ES"""
         return redis.StrictRedis(
-            unix_socket_path=self.redis_data["unix_socket_path"], db=1
+            unix_socket_path=self.redis_data.unix_socket_path, db=1
         )
 
     def save_state(self, key: str, value: Any) -> None:
@@ -71,9 +72,7 @@ class State:
         """Установить состояние для определённого ключа."""
         self.storage.save_state(key=key, value=value)
 
-    def get_state(
-            self, key: str, default: Optional[str] = None
-    ) -> Optional[str]:
+    def get_state(self, key: str, default: str | None = None) -> str | None:
         """Получить состояние по определённому ключу."""
         result = self.storage.retrieve_state(key=key)
         return result if result else default

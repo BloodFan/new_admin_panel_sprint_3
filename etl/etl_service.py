@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 
 from es_service import ESService
 from models import BaseModel
@@ -38,8 +38,8 @@ class ETLService:
         return self.psql_service.handler(table)
 
     def validave_data(
-        self, model: BaseModel, object_list: List[dict]
-    ) -> List[BaseModel]:
+        self, model: BaseModel, object_list: list[dict]
+    ) -> list[BaseModel]:
         """Валидация данных через модель pydantic."""
         return [model(**object) for object in object_list]
 
@@ -59,10 +59,9 @@ class ETLService:
                 last_m = modified
             del obj["modified"]
             transform_list.append(model(**obj))
-        print(f"{last_m=}")
         return transform_list, last_m
 
-    def load_to_es(self, upload_data: List[BaseModel], last_m):
+    def load_to_es(self, upload_data: list[BaseModel], last_m):
         """загрузка полученных данных в Elasticsearch"""
         self.es_service.load(upload_data)
         self.state_service.set_state(key="timestamp", value=str(last_m))

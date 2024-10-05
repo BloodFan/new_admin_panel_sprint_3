@@ -1,23 +1,17 @@
-from typing import Optional
 from datetime import datetime
+from types import TracebackType
+from typing import Type
 
 import psycopg
+from conn_data import PSQLData
 from my_backoff import backoff
-from psycopg import (
-    ClientCursor,
-    IntegrityError,
-    InterfaceError,
-    OperationalError,
-    ProgrammingError,
-)
+from psycopg import (ClientCursor, IntegrityError, InterfaceError,
+                     OperationalError, ProgrammingError)
 from psycopg import connection as _connection
 from psycopg.rows import dict_row
 from queries import Queries
-from sql_factory import (
-    FilmWorkQueryHandler,
-    GenreFilmWorkQueryHandler,
-    PersonFilmWorkQueryHandler,
-)
+from sql_factory import (FilmWorkQueryHandler, GenreFilmWorkQueryHandler,
+                         PersonFilmWorkQueryHandler)
 from state_redis import State
 
 
@@ -34,12 +28,12 @@ class PostgresService:
 
     def __init__(
         self,
-        connect_data: dict = None,
-        schema_name: Optional[str] = None,
+        connect_data: PSQLData = None,
+        schema_name: str | None = None,
         batch_size: int = 100,
         state_service: State = None,
         queries: Queries = Queries(),
-        connection: _connection = None
+        connection: _connection = None,
     ) -> None:
         self.connect_data = connect_data
         self.schema_name = schema_name
@@ -67,14 +61,14 @@ class PostgresService:
     def get_psql_connection(self) -> _connection:
         """Создание соединения psql"""
         return psycopg.connect(
-            **self.connect_data,
+            **self.connect_data.model_dump(),
             row_factory=dict_row,
             cursor_factory=ClientCursor
         )
 
     def handler(self, table: str):
         timestamp = self.state_service.get_state(
-            'timestamp', default=str(datetime.min)
+            "timestamp", default=str(datetime.min)
         )
         handler = query_handlers(table)
         handle = handler(
@@ -92,6 +86,11 @@ class PostgresService:
             self.cursor: psycopg.Cursor = self.create_cursor()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool | None:
         if self.connection and not self.connection.closed:
             self.connection.close()

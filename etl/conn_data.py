@@ -1,17 +1,34 @@
 import os
 
-psql_data = {
-    "dbname": os.environ.get("POSTGRES_DB", "theatre"),
-    "user": os.environ.get("POSTGRES_USER", "postgres"),
-    "password": os.environ.get("POSTGRES_PASSWORD", "secret"),
-    "host": os.environ.get("SQL_HOST"),
-    "port": os.environ.get("SQL_PORT"),
-}
-es_data = {
-    "es_host": os.environ.get("ES_HOST"),
-    "es_port": os.environ.get("ES_PORT"),
-}
-redis_data = {"unix_socket_path": os.environ.get("REDIS_UNIX_SOCKET_PATH")}
+from pydantic import Field
+from pydantic_settings import BaseSettings
+
+from models import ENVData
+
+
+class PSQLData(BaseSettings):
+    dbname: str = Field(default="theatre", env="POSTGRES_DB")
+    user: str = Field(default="postgres", env="POSTGRES_USER")
+    password: str = Field(default="secret", env="POSTGRES_PASSWORD")
+    host: str
+    port: str
+
+    class Config:
+        env_prefix = "SQL_"
+        envenv_file = ".conn.env"
+
+
+class ESData(BaseSettings):
+    es_host: str
+    es_port: str
+
+
+class RedisData(BaseSettings):
+    unix_socket_path: str
+
+    class Config:
+        env_prefix = "REDIS_"
+        envenv_file = ".conn.env"
 
 
 env_data = {
@@ -19,4 +36,10 @@ env_data = {
     "periodicity": os.environ.get("PERIODICITY"),
     "schema_name": os.environ.get("SCHEMA_NAME"),
     "index": os.environ.get("INDEX"),
+    "batch_size": os.environ.get("BATCH_SIZE"),
 }
+
+psql_data = PSQLData()
+es_data = ESData()
+redis_data = RedisData()
+env_data = ENVData(**env_data)

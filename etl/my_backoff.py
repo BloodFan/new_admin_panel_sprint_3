@@ -44,7 +44,7 @@ def backoff(
                 try:
                     return func(*args, **kwargs)
                 except errors as e:
-                    print(f"error {e}")
+                    logger.error(f"error {e}")
                     t = border_sleep_time
                     _time = start_sleep_time * (factor ^ n)
                     if _time < border_sleep_time:

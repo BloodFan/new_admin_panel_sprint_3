@@ -1,9 +1,10 @@
 from uuid import UUID
+from typing import Union, Type
 
 from pydantic import BaseModel, field_validator
 
 
-class Person(BaseModel):
+class PersonToFilmWork(BaseModel):
     id: str
     name: str
 
@@ -17,22 +18,33 @@ class Movie(BaseModel):
     directors_names: list[str] | None
     actors_names: list[str] | None
     writers_names: list[str] | None
-    directors: list[Person] | None
-    actors: list[Person] | None
-    writers: list[Person] | None
+    directors: list[PersonToFilmWork] | None
+    actors: list[PersonToFilmWork] | None
+    writers: list[PersonToFilmWork] | None
 
     @field_validator("directors_names", mode="before")
     def set_directors_names(cls, v):
         return v if v is not None else []
 
 
-class ENVData(BaseModel):
-    tables: list[str]
-    periodicity: int
-    schema_name: str
-    index: str
-    batch_size: int
+class Genre(BaseModel):
+    id: UUID
+    name: str
 
-    @field_validator("tables", mode="before")
-    def set_tables(cls, v):
-        return [table.strip() for table in v.split(",") if table.strip()]
+
+class RoleToFilmWork(BaseModel):
+    role: str
+    film_work_title: str
+    film_work_id: UUID
+
+
+class Person(BaseModel):
+    id: UUID
+    full_name: str
+    participated: list[RoleToFilmWork] | None
+
+
+class IndexData(BaseModel):
+    query_handlers: tuple
+    model: Type[Union[Movie, Genre, Person]]
+    index: str

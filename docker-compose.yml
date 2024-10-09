@@ -25,6 +25,7 @@ services:
       dockerfile: docker/dev/es/Dockerfile
     ports:
       - "9200:9200"
+    depends_on: [db, redis]
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

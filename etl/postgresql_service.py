@@ -1,4 +1,3 @@
-from datetime import datetime
 from types import TracebackType
 from typing import Type
 
@@ -11,7 +10,8 @@ from psycopg import connection as _connection
 from psycopg.rows import dict_row
 from queries import Queries
 from sql_factory import (FilmWorkQueryHandler, GenreFilmWorkQueryHandler,
-                         PersonFilmWorkQueryHandler)
+                         PersonFilmWorkQueryHandler, GenreQueryHandler,
+                         PersonQueryHandler)
 from state_redis import State
 
 
@@ -20,6 +20,8 @@ def query_handlers(table_name: str):
         "film_work": FilmWorkQueryHandler,
         "person": PersonFilmWorkQueryHandler,
         "genre": GenreFilmWorkQueryHandler,
+        "genre_index": GenreQueryHandler,
+        'person_index': PersonQueryHandler
     }
     return data[table_name]
 
@@ -66,11 +68,8 @@ class PostgresService:
             cursor_factory=ClientCursor
         )
 
-    def handler(self, table: str):
-        timestamp = self.state_service.get_state(
-            "timestamp", default=str(datetime.min)
-        )
-        handler = query_handlers(table)
+    def handler(self, handler: str, timestamp: str):
+        handler = query_handlers(handler)
         handle = handler(
             self.cursor,
             self.queries,

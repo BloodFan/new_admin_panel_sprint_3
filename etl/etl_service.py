@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Union
 
 from es_service import ESService
@@ -33,9 +34,12 @@ class ETLService:
         if type_process == ServiceType.STATE:
             self.state_service = launc_process
 
-    def extract(self, table: str):
+    def extract(self, handler: str, model: BaseModel):
         """Извлекает данные из PosgreSQL"""
-        return self.psql_service.handler(table)
+        timestamp = self.state_service.get_state(
+            f"timestamp_{model.__name__}", default=str(datetime.min)
+        )
+        return self.psql_service.handler(handler, timestamp)
 
     def validave_data(
         self, model: BaseModel, object_list: list[dict]
@@ -48,7 +52,9 @@ class ETLService:
         Преобразование формата данных
         PosgreSQL -> Elasticsearch
         """
-        last_m = self.state_service.get_state(key="timestamp")
+        last_m = self.state_service.get_state(
+            key=f"timestamp_{model.__name__}"
+        )
         transform_list = []
 
         for obj in _list:
@@ -61,7 +67,11 @@ class ETLService:
             transform_list.append(model(**obj))
         return transform_list, last_m
 
-    def load_to_es(self, upload_data: list[BaseModel], last_m):
+    def load_to_es(
+            self, upload_data: list[BaseModel], last_m: str, model: BaseModel
+    ):
         """загрузка полученных данных в Elasticsearch"""
         self.es_service.load(upload_data)
-        self.state_service.set_state(key="timestamp", value=str(last_m))
+        self.state_service.set_state(
+            key=f"timestamp_{model.__name__}", value=str(last_m)
+        )

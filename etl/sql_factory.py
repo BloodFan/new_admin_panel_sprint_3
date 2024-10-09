@@ -30,20 +30,6 @@ class BaseQueryHandler(ABC):
     def get_result_query(self):
         pass
 
-    def result_query(
-        self,
-        fw_ids: Set[uuid.UUID] = None,
-    ) -> Generator[dict, Any, Any]:
-        self.cursor.itersize = 100
-        if fw_ids:
-            query = self.queries.result_query(id_fw_list=list(fw_ids))
-            self.cursor.execute(query, (list(fw_ids),))
-        else:
-            query = self.queries.result_query(timestamp=self.timestamp)
-            self.cursor.execute(query, (self.timestamp,))
-        for row in self.cursor:
-            yield row
-
 
 class ExtendedQueryHandler(BaseQueryHandler):
     def get_list_ids(self) -> list[uuid.UUID]:
@@ -117,8 +103,22 @@ class ExtendedQueryHandler(BaseQueryHandler):
         except (Exception, psycopg.Error) as e:
             logger.error(f"Ошибка при извлечении данных: {e}")
 
+    def result_query(
+        self,
+        fw_ids: Set[uuid.UUID] = None,
+    ) -> Generator[dict, Any, Any]:
+        self.cursor.itersize = 100
+        if fw_ids:
+            query = self.queries.result_query(id_fw_list=list(fw_ids))
+            self.cursor.execute(query, (list(fw_ids),))
+        else:
+            query = self.queries.result_query(timestamp=self.timestamp)
+            self.cursor.execute(query, (self.timestamp,))
+        for row in self.cursor:
+            yield row
 
-class FilmWorkQueryHandler(BaseQueryHandler):
+
+class FilmWorkQueryHandler(ExtendedQueryHandler):
     table_name: str = "film_work"
 
     def get_result_query(self):
@@ -147,3 +147,32 @@ class GenreFilmWorkQueryHandler(ExtendedQueryHandler):
             genre_ids, table_name=self.m2m_table_name
         )
         return self.result_query(fw_ids)
+
+
+class GenreQueryHandler(BaseQueryHandler):
+    table_name: str = "genre"
+
+    def get_result_query(self):
+        query = self.queries.get_genres(
+            schema_name=self.schema_name, table_name=self.table_name
+        )
+        self.cursor.itersize = 100
+        self.cursor.execute(query, (self.timestamp,))
+        for row in self.cursor:
+            yield row
+
+
+class PersonQueryHandler(BaseQueryHandler):
+    table_name: str = "person"
+    m2m_table_name: str = "person_film_work"
+
+    def get_result_query(self):
+        query = self.queries.get_persons(
+            schema_name=self.schema_name,
+            table_name=self.table_name,
+            m2m_table=self.m2m_table_name
+        )
+        self.cursor.itersize = 100
+        self.cursor.execute(query, (self.timestamp,))
+        for row in self.cursor:
+            yield row

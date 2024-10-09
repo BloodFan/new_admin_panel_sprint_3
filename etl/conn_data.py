@@ -1,9 +1,5 @@
-import os
-
 from pydantic import Field
 from pydantic_settings import BaseSettings
-
-from models import ENVData
 
 
 class PSQLData(BaseSettings):
@@ -31,16 +27,13 @@ class RedisData(BaseSettings):
         envenv_file = ".conn.env"
 
 
-env_data = {
-    "tables": os.environ.get("TABLES"),
-    "periodicity": os.environ.get("PERIODICITY"),
-    "schema_name": os.environ.get("SCHEMA_NAME"),
-    "index": os.environ.get("INDEX"),
-    "batch_size": os.environ.get("BATCH_SIZE"),
-}
+class ENVData(BaseSettings):
+    periodicity: int
+    schema_name: str
+    batch_size: int
 
 
 psql_data = PSQLData()
 es_data = ESData()
 redis_data = RedisData()
-env_data = ENVData(**env_data)
+env_data = ENVData()

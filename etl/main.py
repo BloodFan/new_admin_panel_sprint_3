@@ -1,10 +1,10 @@
 import time
 
 from conn_data import env_data, es_data, psql_data, redis_data
+from index_data import indexs_data
 from es_service import ESService
 from etl_service import ETLService
 from loggers import setup_logger
-from models import Movie
 from my_types import ServiceType
 from postgresql_service import PostgresService
 from state_redis import RedisStorage, State
@@ -24,7 +24,7 @@ def main():
         state_service=state_service,
     )
     es_service = ESService(
-        connect_data=es_data, index=env_data.index, state_service=state_service
+        connect_data=es_data, state_service=state_service
     )
 
     etl_service = ETLService()
@@ -34,19 +34,22 @@ def main():
 
     logger.info("Старт цикла")
     while True:
-        final_list: list = []
-        for table in env_data.tables:
-            with etl_service.psql_service:
-                result = etl_service.extract(table)
-                for obj in result:
-                    if obj not in final_list:
-                        final_list.append(obj)
-        logger.info("Данные извлечены.")
-        transform_list, last_m = etl_service.transform(final_list, Movie)
-        logger.info("Данные преобразованы.")
-        with etl_service.es_service:
-            etl_service.load_to_es(transform_list, last_m)
-        logger.info("Данные загружены в ElasticSearch.")
+        for index in indexs_data:
+            logger.info(f"Старт извлечения данных для {index.model.__name__}.")
+            final_list: list = []
+            for handler in index.query_handlers:
+                with etl_service.psql_service:
+                    result = etl_service.extract(handler, index.model)
+                    for obj in result:
+                        if obj not in final_list:
+                            final_list.append(obj)
+            logger.info("Данные извлечены.")
+            trans_list, last_m = etl_service.transform(final_list, index.model)
+            logger.info("Данные преобразованы.")
+            etl_service.es_service.index = index.index
+            with etl_service.es_service:
+                etl_service.load_to_es(trans_list, last_m, index.model)
+            logger.info("Данные загружены в ElasticSearch.")
         time.sleep(env_data.periodicity)
 
 

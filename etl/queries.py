@@ -118,3 +118,48 @@ class Queries:
                 ON g.id = gfw.genre_id
             {}
             GROUP BY fw.id;""").format(_filter)
+
+    @staticmethod
+    def get_genres(
+        schema_name: str,
+        table_name: str,
+    ) -> str:
+        """Запрос Genre."""
+
+        return f"""
+            SELECT id, name, modified
+            FROM {schema_name}.{table_name}
+            WHERE modified > %s
+            ORDER BY modified;
+        """
+
+    @staticmethod
+    def get_persons(
+        schema_name: str,
+        table_name: str,
+        m2m_table: str,
+    ) -> str:
+        """Запрос person. """
+        return f"""
+            SELECT
+                p.id,
+                p.full_name,
+                p.modified,
+                array_agg(DISTINCT jsonb_build_object(
+                    'role', pfw.role,
+                    'film_work_id', fw.id,
+                    'film_work_title', fw.title))
+                    AS participated
+            FROM
+                {schema_name}.{table_name} p
+            LEFT JOIN {schema_name}.{m2m_table} pfw
+                ON p.id = pfw.person_id
+            LEFT JOIN {schema_name}.film_work fw
+                ON pfw.film_work_id = fw.id
+            WHERE
+                p.modified > %s
+            GROUP BY
+                p.id
+            ORDER BY
+                p.id;
+        """

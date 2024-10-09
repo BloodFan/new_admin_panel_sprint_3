@@ -24,4 +24,5 @@
 - **movies.json:** Индекс ES
 - **my_backoff.py:** реализация декоратора `backoff` (мое решение)
 - **conn_data.py:** конфигурации для доступа (Redis, ElasticSearch, PostgreSQL)
+- **index_data.py:** конфигурации для цикла(ключи для query_handlers, модель и индекс)
 - **loggers.py:** настройки логгера

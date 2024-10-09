@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Generator, Set
 
 import psycopg
+import psycopg.sql
 from loggers import setup_logger
 from queries import Queries
 from utils import batch_list
@@ -33,14 +34,13 @@ class BaseQueryHandler(ABC):
         self,
         fw_ids: Set[uuid.UUID] = None,
     ) -> Generator[dict, Any, Any]:
+        self.cursor.itersize = 100
         if fw_ids:
             query = self.queries.result_query(id_fw_list=list(fw_ids))
             self.cursor.execute(query, (list(fw_ids),))
         else:
             query = self.queries.result_query(timestamp=self.timestamp)
-            self.cursor.execute(query)
-        self.cursor.itersize = 100
-        self.cursor.execute(query)
+            self.cursor.execute(query, (self.timestamp,))
         for row in self.cursor:
             yield row
 

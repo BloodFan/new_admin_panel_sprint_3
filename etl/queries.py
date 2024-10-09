@@ -1,3 +1,6 @@
+from psycopg import sql
+
+
 class Queries:
 
     @staticmethod
@@ -57,57 +60,61 @@ class Queries:
     @staticmethod
     def result_query(
         id_fw_list: list[str] | None = None, timestamp: str | None = None
-    ) -> str:
+    ) -> sql.Composed:
         """
         Результирующий запрос.
 
-        Фильтрация  для film_work по fw.modified > '<время>'.
+        Фильтрация для film_work по fw.modified > '<время>'.
 
-        Фильтрация  для person and genre по fw.id
-        передаваемому списку id_fw_str(строка через ,).
+        Фильтрация для person и genre по fw.id
+        передаваемому списку id_fw_list (строка через ',').
         """
         if id_fw_list is not None:
-            _filter = "WHERE fw.id = ANY(%s)"
+            _filter = sql.SQL("WHERE fw.id = ANY(%s)")
         elif timestamp is not None:
-            _filter = f"WHERE fw.modified > '{timestamp}'"
+            _filter = sql.SQL("WHERE fw.modified > %s")
 
-        return f"""SELECT
-                    fw.id AS id,
-                    fw.rating AS imdb_rating,
-                    fw.title,
-                    fw.description,
-                    GREATEST(fw.modified,
-                        MAX(p.modified),
-                        MAX(g.modified)) AS modified,
-                    array_agg(DISTINCT g.name) AS genres,
-                    array_agg(DISTINCT p.full_name)
-                        FILTER (
-                        WHERE pfw.role = 'director'
-                    ) AS directors_names,
-                    array_agg(DISTINCT p.full_name)
-                        FILTER (WHERE pfw.role = 'actor') AS actors_names,
-                    array_agg(DISTINCT p.full_name)
-                        FILTER (WHERE pfw.role = 'writer') AS writers_names,
-                    array_agg(DISTINCT jsonb_build_object(
-                        'id', p.id,
-                        'name', p.full_name
-                    )) FILTER (WHERE pfw.role = 'director') AS directors,
-                    array_agg(DISTINCT jsonb_build_object(
-                        'id', p.id,
-                        'name', p.full_name
-                    )) FILTER (WHERE pfw.role = 'actor') AS actors,
-                    array_agg(DISTINCT jsonb_build_object(
-                        'id', p.id,
-                        'name', p.full_name
-                    )) FILTER (WHERE pfw.role = 'writer') AS writers
-                FROM content.film_work fw
-                LEFT JOIN content.person_film_work pfw
-                    ON pfw.film_work_id = fw.id
-                LEFT JOIN content.person p
-                    ON p.id = pfw.person_id
-                LEFT JOIN content.genre_film_work gfw
-                    ON gfw.film_work_id = fw.id
-                LEFT JOIN content.genre g
-                    ON g.id = gfw.genre_id
-                {_filter}
-                GROUP BY fw.id;"""
+        return sql.SQL(
+            """SELECT
+                fw.id AS id,
+                fw.rating AS imdb_rating,
+                fw.title,
+                fw.description,
+                GREATEST(fw.modified, MAX(p.modified),
+                    MAX(g.modified)) AS modified,
+                array_agg(DISTINCT g.name) AS genres,
+                array_agg(DISTINCT p.full_name)
+                    FILTER (WHERE pfw.role = 'director')
+                    AS directors_names,
+                array_agg(DISTINCT p.full_name)
+                    FILTER (WHERE pfw.role = 'actor')
+                    AS actors_names,
+                array_agg(DISTINCT p.full_name)
+                    FILTER (WHERE pfw.role = 'writer')
+                    AS writers_names,
+                array_agg(DISTINCT jsonb_build_object(
+                    'id', p.id,
+                    'name', p.full_name))
+                    FILTER (WHERE pfw.role = 'director')
+                    AS directors,
+                array_agg(DISTINCT jsonb_build_object(
+                    'id', p.id,
+                    'name', p.full_name))
+                    FILTER (WHERE pfw.role = 'actor')
+                    AS actors,
+                array_agg(DISTINCT jsonb_build_object(
+                    'id', p.id,
+                    'name', p.full_name))
+                    FILTER (WHERE pfw.role = 'writer')
+                    AS writers
+            FROM content.film_work fw
+            LEFT JOIN content.person_film_work pfw
+                ON pfw.film_work_id = fw.id
+            LEFT JOIN content.person p
+                ON p.id = pfw.person_id
+            LEFT JOIN content.genre_film_work gfw
+                ON gfw.film_work_id = fw.id
+            LEFT JOIN content.genre g
+                ON g.id = gfw.genre_id
+            {}
+            GROUP BY fw.id;""").format(_filter)

@@ -39,6 +39,7 @@ env_data = {
     "batch_size": os.environ.get("BATCH_SIZE"),
 }
 
+
 psql_data = PSQLData()
 es_data = ESData()
 redis_data = RedisData()

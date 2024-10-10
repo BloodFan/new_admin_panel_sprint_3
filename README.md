@@ -1,28 +1,24 @@
-# Заключительное задание первого модуля
+# 4 Спринт Яндекс Практикума
 
-Ваша задача в этом уроке — загрузить данные в Elasticsearch из PostgreSQL. Подробности задания в папке `etl`.
+## Информация о приложении django_app -> /django_app/Readme.md
 
-`main.py` - точка запуска.
+## Информация о приложении etl -> /etl/Readme.md
 
-## Структура директорий
+## Информация о приложении fastapi_solution -> /fastapi_solution/Readme.md
+
+## Tочка входа http://localhost:8000/
+  ## Актуальные урлы:
+  - http://localhost:8000/api/v1/films/film_id
+  - пример - http://localhost:8000/api/v1/films/479f20b0-58d1-4f16-8944-9b82f5b1f22a
+
+  - http://localhost:8000/admin/
+  - Для Django_app SUPERUSER создается автоматически.
+  - параметры SUPERUSER можно изменить в .env
+  - SUPERUSER_USERNAME=test1@test.com 
+  - SUPERUSER_EMAIL=test1@test.com 
+  - SUPERUSER_PASSWORD=tester34
+
 
 - **dir docker:**
   - **dir dev:**
-    - конфигурационные файлы для `docker-compose.yml`
-
-## Описание файлов
-
-- **etl_service.py:** общий сервис ETL.
-- **es_service.py:** Loader ES.
-- **postgresql_service.py:** экстрактор из PSQL.
-- **state_redis.py:** сервис состояния.
-
-- **sql_factory.py:** фабричные классы для `postgresql_service`
-- **queries.py:** SQL-запросы в БД
-
-- **models.py:** для валидации `pydantic`
-- **movies.json:** Индекс ES
-- **my_backoff.py:** реализация декоратора `backoff` (мое решение)
-- **conn_data.py:** конфигурации для доступа (Redis, ElasticSearch, PostgreSQL)
-- **index_data.py:** конфигурации для цикла(ключи для query_handlers, модель и индекс)
-- **loggers.py:** настройки логгера
+    - конфигурационные файлы для сервисов `docker-compose.yml`

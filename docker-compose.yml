@@ -1,19 +1,58 @@
 services:
 
+  fastapi_solution:
+    build:
+      context: .
+      dockerfile: docker/dev/fastapi_solution/Dockerfile
+    volumes:
+      - postgres_socket:/postgres_socket
+      - redis_socket:/redis_socket
+      - fastapi_gunicorn_socket:/fastapi_gunicorn_socket
+    ports:
+      - "9000:9000"
+    env_file:
+      - docker/dev/env/.conn.env
+      - docker/dev/env/.env
+      - docker/dev/env/.gunicorn.env
+    depends_on: [db, elasticsearch, redis]
+    restart: unless-stopped
+    networks:
+      - theatre_network
+
+  django_app: # В нем находится Nginx
+    hostname: theatre-app
+    build:
+      context: .
+      dockerfile: docker/dev/django_app/Dockerfile
+    volumes:
+      - fastapi_gunicorn_socket:/fastapi_gunicorn_socket
+      - postgres_socket:/postgres_socket
+      - media:/opt/django_app/media/
+    depends_on: [db, ]
+    ports:
+      - "8000:80"
+    env_file:
+      - docker/dev/env/.conn.env
+      - docker/dev/env/.env
+      - docker/dev/env/.gunicorn.env
+    restart: unless-stopped
+    networks:
+      - theatre_network
+
   etl:
     build:
       context: . 
       dockerfile: docker/dev/etl/Dockerfile
     volumes:
       - ./etl/:/opt/etl/
-      - etl_postgres_socket:/postgres_socket
-      - etl_postgres_data:/var/lib/postgresql/data/
+      - postgres_socket:/postgres_socket
+      - postgres_data:/var/lib/postgresql/data/
       - redis_socket:/redis_socket
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - docker/dev/env/.conn.env
-      - docker/dev/env/.env
+      - docker/dev/env/.esl.env
     depends_on: [db, elasticsearch, redis]
     restart: unless-stopped
     networks:
@@ -45,7 +84,6 @@ services:
       - theatre_network
 
   db:
-    hostname: theatre-db
     image: postgres:15.1-alpine
     restart: unless-stopped
     ports:
@@ -53,8 +91,8 @@ services:
     volumes:
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
       - ./docker/dev/db/pg.conf:/etc/postgresql/postgresql.conf
-      - etl_postgres_data:/var/lib/postgresql/data/
-      - etl_postgres_socket:/var/run/postgresql/
+      - postgres_data:/var/lib/postgresql/data/
+      - postgres_socket:/var/run/postgresql/
     env_file:
       - docker/dev/env/.conn.env
     networks:
@@ -64,8 +102,10 @@ services:
 volumes:
   redis_data:
   redis_socket:
-  etl_postgres_data:
-  etl_postgres_socket:
+  postgres_data:
+  postgres_socket:
+  fastapi_gunicorn_socket:
+  media:
 
 networks:
   theatre_network:

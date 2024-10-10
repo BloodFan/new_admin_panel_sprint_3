@@ -17,6 +17,6 @@ def setup_logger(log_file: str, level=logging.DEBUG) -> logging.Logger:
 
     if not logger.handlers:
         logger.addHandler(file_handler)
-        logger.addHandler(stream_handler)
+        # logger.addHandler(stream_handler)
 
     return logger

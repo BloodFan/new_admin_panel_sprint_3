@@ -18,9 +18,8 @@ RUN apk add --update --no-cache python3-dev postgresql-dev curl && \
 WORKDIR $APP_HOME
 
 COPY --chown=$USER:$USER ./etl $APP_HOME
-COPY --chown=$USER:$USER ./requirements.txt $APP_HOME/requirements.txt
 
-RUN pip install -r requirements.txt
+RUN pip install -r $APP_HOME/requirements.txt
 
 EXPOSE 8000
 
